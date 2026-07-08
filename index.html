@@ -110,19 +110,24 @@ function setMode(m,el){
 async function go(){
   const url=document.getElementById('url').value.trim()
   if(!url){return}
-  document.getElementById('result').innerHTML=`<div class="loading"><div class="dot"></div><p style="color:#666;font-size:13px">Đang xử lý...</p></div>`
-
-  try{
-    const r=await fetch(API+'?url='+encodeURIComponent(url))
-    const d=await r.json()
-    if(d.code!==0||!d.data) throw new Error()
-    const v=d.data
-    const title=(v.title||'Video').substring(0,70)
-    const author=v.author?.nickname||'Unknown'
-    const plays=(v.play_count||0).toLocaleString()
-    const vid=v.play||v.hdplay||''
-    const music=v.music||''
-    const local=location.hostname==='localhost'||location.hostname.startsWith('192.168')
+  const local=location.hostname==='localhost'||location.hostname.startsWith('192.168')
+  const API_BASE=local?`http://${location.hostname}:8888`:''
+    document.getElementById('result').innerHTML=`<div class="loading"><div class="dot"></div><p style="color:#666;font-size:13px">Đang xử lý...</p></div>`
+    try{
+      let info
+      if(local){
+        const r=await fetch(`${API_BASE}/api/info?url=${encodeURIComponent(url)}`)
+        info=await r.json()
+        if(!info||!info.title) throw new Error()
+      }else{
+        const r=await fetch(`https://tikwm.com/api/?url=${encodeURIComponent(url)}`)
+        const d=await r.json()
+        if(d.code!==0||!d.data) throw new Error()
+        const v=d.data; info={title:v.title||'Video',author:v.author?.nickname||'Unknown',video:v.play||v.hdplay||'',audio:v.music||''}
+      }
+      const title=(info.title||'Video').substring(0,70),author=info.author||'Unknown'
+      const vid=info.video||'',music=info.audio||''
+      const dl=(u)=>local?`${API_BASE}/dl?url=${encodeURIComponent(u)}`:u
 
     let html=`<div class="card-r"><div class="head"><div class="thumb" style="background:#1a1a2e">🎬</div><div class="meta"><div class="author">👤 ${author}</div><div class="title">${title}</div></div></div><div class="actions${mode==='beat'?' full':''}">`
 
